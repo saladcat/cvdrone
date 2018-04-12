@@ -17,3 +17,5 @@ obj
 *.iobj
 *.ipdb
 *.exe
+/build/vs2015/.vs/test/v15/Browse.VC.db
+/build/vs2015/.vs/test/v15/Browse.VC.opendb

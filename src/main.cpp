@@ -1,10 +1,24 @@
 #include "ardrone/ardrone.h"
-
+#include <cstring>
+#include <opencv2/opencv.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <opencv2\aruco.hpp>
 // --------------------------------------------------------------------------
 // main(Number of arguments, Argument values)
 // Description  : This is the entry point of the program.
 // Return value : SUCCESS:0  ERROR:-1
 // --------------------------------------------------------------------------
+
+using namespace std;
+using namespace cv;
+
+const double markerLength = 0.0705;
 int main(int argc, char *argv[])
 {
     // AR.Drone class
@@ -15,7 +29,12 @@ int main(int argc, char *argv[])
         std::cout << "Failed to initialize." << std::endl;
         return -1;
     }
-
+	FileStorage fs("camera.xml", FileStorage::READ);
+	// Load camera parameters
+	cv::Mat cameraMatrix, distCoeffs;
+	fs["intrinsic"] >> cameraMatrix;
+	fs["distortion"] >> distCoeffs;
+	cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
     // Battery
     std::cout << "Battery = " << ardrone.getBatteryPercentage() << "[%]" << std::endl;
 
@@ -47,11 +66,23 @@ int main(int argc, char *argv[])
 
         // Get an image
         cv::Mat image = ardrone.getImage();
-
+		std::vector<int> ids;
+		std::vector<std::vector<cv::Point2f>> corners;
+		cv::aruco::detectMarkers(image, dictionary, corners, ids);
+		std::vector<cv::Vec3d> rvecs, tvecs;
+		if (ids.size() != 0) {
+			cv::aruco::estimatePoseSingleMarkers(corners, markerLength, cameraMatrix, distCoeffs, rvecs, tvecs);
+			cout << tvecs[0] << endl;
+			aruco::drawAxis(image, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1);
+		}
         // Take off / Landing 
         if (key == ' ') {
-            if (ardrone.onGround()) ardrone.takeoff();
-            else                    ardrone.landing();
+			if (ardrone.onGround()) { 
+				ardrone.takeoff(); 
+			}
+			else {
+				ardrone.landing();
+			}
         }
 
         // Move
@@ -65,7 +96,6 @@ int main(int argc, char *argv[])
         if (key == 'q') vz =  1.0;
         if (key == 'a') vz = -1.0;
         ardrone.move3D(vx, vy, vz, vr);
-
         // Change camera
         static int mode = 0;
         if (key == 'c') ardrone.setCamera(++mode % 4);
