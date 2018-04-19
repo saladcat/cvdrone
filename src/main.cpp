@@ -9,6 +9,8 @@
 #include <cstdio>
 #include <vector>
 #include <opencv2\aruco.hpp>
+#include "pid.hpp"
+
 // --------------------------------------------------------------------------
 // main(Number of arguments, Argument values)
 // Description  : This is the entry point of the program.
@@ -18,9 +20,10 @@
 using namespace std;
 using namespace cv;
 
-const double markerLength = 0.0705;
+const double markerLength = 0.123;
 int main(int argc, char *argv[])
 {
+	PIDManager PID("pid.yaml");	
     // AR.Drone class
     ARDrone ardrone;
 
@@ -63,18 +66,8 @@ int main(int argc, char *argv[])
         // Key input
         int key = cv::waitKey(33);
         if (key == 0x1b) break;
+		cv::Mat image = ardrone.getImage();
 
-        // Get an image
-        cv::Mat image = ardrone.getImage();
-		std::vector<int> ids;
-		std::vector<std::vector<cv::Point2f>> corners;
-		cv::aruco::detectMarkers(image, dictionary, corners, ids);
-		std::vector<cv::Vec3d> rvecs, tvecs;
-		if (ids.size() != 0) {
-			cv::aruco::estimatePoseSingleMarkers(corners, markerLength, cameraMatrix, distCoeffs, rvecs, tvecs);
-			cout << tvecs[0] << endl;
-			aruco::drawAxis(image, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1);
-		}
         // Take off / Landing 
         if (key == ' ') {
 			if (ardrone.onGround()) { 
@@ -99,6 +92,53 @@ int main(int argc, char *argv[])
         // Change camera
         static int mode = 0;
         if (key == 'c') ardrone.setCamera(++mode % 4);
+
+
+		if (key == -1) {
+			// implement your autopilot algorithm here
+			// only need to modify vx, vy, vz, vr
+
+			// Get an image
+			std::vector<int> ids;
+			std::vector<std::vector<cv::Point2f>> corners;
+			cv::aruco::detectMarkers(image, dictionary, corners, ids);
+			std::vector<cv::Vec3d> rvecs, tvecs;
+			if (ids.size() != 0) {//if dect marker
+				cv::aruco::estimatePoseSingleMarkers(corners, markerLength, cameraMatrix, distCoeffs, rvecs, tvecs);
+//				cout << tvecs[0] << endl;
+				aruco::drawAxis(image, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1);
+				//2 是前后
+				//1 是上下
+				//0 是左右
+				Mat error(4, 1, CV_64F);
+				Mat move_dir(4, 1, CV_64F);
+
+				error.at<double>(1,0) = tvecs[0][0];
+				error.at<double>(2,0) = tvecs[0][1];
+				error.at<double>(0,0) = tvecs[0][2] - 0.8	;
+				error.at<double>(3,0) = rvecs[0][2];
+				//cout << rvecs[0] << endl;
+				PID.getCommand(error, move_dir);
+				//vx = 0;
+				vx = 5 * move_dir.at<double>(0, 0);
+				//vy = 0;
+				vy = -move_dir.at<double>(1,0);
+				//vz = 0;
+				vz = -move_dir.at<double>(2,0);
+				vr = -move_dir.at<double>(3	,0)+0.4;
+				// VX是前后
+				// VY是左右
+				// VZ是上下
+				cout << "vx=" << vx<<"||";
+				cout << "vy=" << vy << "||";
+				cout << "vz=" << vz << "||";
+				cout << "vr=" << vr << "||";
+				cout << endl;
+			}
+
+		}
+
+		ardrone.move3D(vx, vy, vz, vr);
 
         // Display the image
         cv::imshow("camera", image);
