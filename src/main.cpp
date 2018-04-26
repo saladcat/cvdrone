@@ -10,7 +10,7 @@
 #include <vector>
 #include <opencv2\aruco.hpp>
 #include "pid.hpp"
-
+#include <cmath>
 // --------------------------------------------------------------------------
 // main(Number of arguments, Argument values)
 // Description  : This is the entry point of the program.
@@ -112,27 +112,35 @@ int main(int argc, char *argv[])
 				//0 是左右
 				Mat error(4, 1, CV_64F);
 				Mat move_dir(4, 1, CV_64F);
-
 				error.at<double>(1,0) = tvecs[0][0];
 				error.at<double>(2,0) = tvecs[0][1];
 				error.at<double>(0,0) = tvecs[0][2] - 0.8	;
 				error.at<double>(3,0) = rvecs[0][2];
+				double tem = rvecs[0][0] * rvecs[0][2];
+				if (tem >=0) { 
+					error.at<double>(3, 0) =  fabs(rvecs[0][2]);
+				} else {
+					error.at<double>(3, 0) = -fabs(rvecs[0][2]);
+				}
+				cout << error << endl;
+				if (error.at<double>(3, 0) < 0.3&& error.at<double>(3, 0) > -0.3) {
+					error.at<double>(3, 0) = 0;
+				}
+				
 				//cout << rvecs[0] << endl;
 				PID.getCommand(error, move_dir);
+				cout << move_dir<<endl;
 				//vx = 0;
-				vx = 5 * move_dir.at<double>(0, 0);
+				vx = 10.0 * move_dir.at<double>(0, 0);
 				//vy = 0;
-				vy = -move_dir.at<double>(1,0);
-				//vz = 0;
-				vz = -move_dir.at<double>(2,0);
-				vr = -move_dir.at<double>(3	,0)+0.4;
+				vy = -3.0*move_dir.at<double>(1,0);
+				vz = 0;
+				//vz = -move_dir.at<double>(2,0);
+				vr = move_dir.at<double>(3	,0);
+				//vr = 0;
 				// VX是前后
 				// VY是左右
 				// VZ是上下
-				cout << "vx=" << vx<<"||";
-				cout << "vy=" << vy << "||";
-				cout << "vz=" << vz << "||";
-				cout << "vr=" << vr << "||";
 				cout << endl;
 			}
 
