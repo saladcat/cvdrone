@@ -122,30 +122,38 @@ int main(int argc, char *argv[])
 				} else {
 					error.at<double>(3, 0) = -fabs(rvecs[0][2]);
 				}
+
 				cout << error << endl;
 				if (error.at<double>(3, 0) < 0.3&& error.at<double>(3, 0) > -0.3) {
 					error.at<double>(3, 0) = 0;
 				}
-				
+				error.at<double>(3, 0) += 0.20;
+
 				//cout << rvecs[0] << endl;
 				PID.getCommand(error, move_dir);
-				cout << move_dir<<endl;
+				
 				//vx = 0;
 				vx = 10.0 * move_dir.at<double>(0, 0);
 				//vy = 0;
-				vy = -3.0*move_dir.at<double>(1,0);
-				vz = 0;
-				//vz = -move_dir.at<double>(2,0);
-				vr = move_dir.at<double>(3	,0);
+				vy = -1.0*move_dir.at<double>(1,0);
+				//vz = 0;
+				vz = -move_dir.at<double>(2, 0);
+				vr = move_dir.at<double>(3, 0);
+				if (error.at<double>(1, 0) < 0.3&& error.at<double>(1, 0) > -0.3) {
+					vy = 0;
+				}
+				if (error.at<double>(3, 0) < 0.2&& error.at<double>(3, 0) > -0.2) {
+					vr = 0;
+				}
 				//vr = 0;
 				// VX是前后
 				// VY是左右
 				// VZ是上下
+				cout << move_dir << endl;
 				cout << endl;
 			}
 
 		}
-
 		ardrone.move3D(vx, vy, vz, vr);
 
         // Display the image
