@@ -19,13 +19,22 @@
 
 using namespace std;
 using namespace cv;
+const double markerLength = 0.094;
+ARDrone ardrone;
 
-const double markerLength = 0.123;
+void do_right90(void) {
+	double vx, vy, vz, vr;
+		vx = 0;
+		vy = 0;
+		vz = 0;
+		vr = -1;
+		ardrone.move3D(vx, vy, vz, vr);
+		waitKey(9200/4);
+}
 int main(int argc, char *argv[])
 {
 	PIDManager PID("pid.yaml");	
     // AR.Drone class
-    ARDrone ardrone;
 
     // Initialize
     if (!ardrone.open()) {
@@ -93,13 +102,17 @@ int main(int argc, char *argv[])
         static int mode = 0;
         if (key == 'c') ardrone.setCamera(++mode % 4);
 
+		if (key == 'r') {//to delete
+			vx = 1;
+			vy = 1;
+		}
 
 		if (key == -1) {
 			// implement your autopilot algorithm here
 			// only need to modify vx, vy, vz, vr
 
 			// Get an image
-			std::vector<int> ids;
+			std::vector<int> ids; 
 			std::vector<std::vector<cv::Point2f>> corners;
 			cv::aruco::detectMarkers(image, dictionary, corners, ids);
 			std::vector<cv::Vec3d> rvecs, tvecs;
@@ -111,10 +124,9 @@ int main(int argc, char *argv[])
 				//1 是上下
 				//0 是左右
 				Mat error(4, 1, CV_64F);
-				Mat move_dir(4, 1, CV_64F);
 				error.at<double>(1,0) = tvecs[0][0];
 				error.at<double>(2,0) = tvecs[0][1];
-				error.at<double>(0,0) = tvecs[0][2] - 0.8	;
+				error.at<double>(0,0) = tvecs[0][2];
 				error.at<double>(3,0) = rvecs[0][2];
 				double tem = rvecs[0][0] * rvecs[0][2];
 				if (tem >=0) { 
@@ -122,34 +134,31 @@ int main(int argc, char *argv[])
 				} else {
 					error.at<double>(3, 0) = -fabs(rvecs[0][2]);
 				}
-
-				cout << error << endl;
-				if (error.at<double>(3, 0) < 0.3&& error.at<double>(3, 0) > -0.3) {
+				/*if (error.at<double>(3, 0) < 0.3&& error.at<double>(3, 0) > -0.3) {
 					error.at<double>(3, 0) = 0;
-				}
-				error.at<double>(3, 0) += 0.20;
+				}*/
+				//error.at<double>(3, 0) += 0.20;
 
 				//cout << rvecs[0] << endl;
-				PID.getCommand(error, move_dir);
-				
-				//vx = 0;
-				vx = 10.0 * move_dir.at<double>(0, 0);
-				//vy = 0;
-				vy = -1.0*move_dir.at<double>(1,0);
-				//vz = 0;
-				vz = -move_dir.at<double>(2, 0);
-				vr = move_dir.at<double>(3, 0);
-				if (error.at<double>(1, 0) < 0.3&& error.at<double>(1, 0) > -0.3) {
-					vy = 0;
-				}
-				if (error.at<double>(3, 0) < 0.2&& error.at<double>(3, 0) > -0.2) {
-					vr = 0;
-				}
 				//vr = 0;
 				// VX是前后
 				// VY是左右
 				// VZ是上下
-				cout << move_dir << endl;
+				vx = -3* error.at<double>(2, 0);
+				vy= -3* error.at<double>(1, 0);
+				if (fabs(error.at<double>(1, 0)) < 0.1&&fabs(error.at<double>(2, 0)) < 0.06) {
+					vz = -0.5;
+					if (error.at<double>(0, 0) < 0.8) {
+						ardrone.landing();
+					}
+				}
+				cout << "vx=" << vx << endl;
+				cout << "vy=" << vy << endl;
+				cout << "vz=" << vz << endl;
+				cout << "error_x=" << error.at<double>(1, 0) << endl;
+				cout << "error_y=" << error.at<double>(2, 0) << endl;
+				cout << "error_z=" << error.at<double>(0, 0) << endl;
+
 				cout << endl;
 			}
 
