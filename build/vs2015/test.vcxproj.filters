@@ -49,6 +49,9 @@
     <ClCompile Include="..\..\src\pid.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\myDrone.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ardrone\ardrone.h">
@@ -56,6 +59,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\pid.hpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\myDrone.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

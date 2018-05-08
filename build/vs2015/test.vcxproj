@@ -113,10 +113,12 @@
     <ClCompile Include="..\..\src\ardrone\version.cpp" />
     <ClCompile Include="..\..\src\ardrone\video.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
+    <ClCompile Include="..\..\src\myDrone.cpp" />
     <ClCompile Include="..\..\src\pid.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ardrone\ardrone.h" />
+    <ClInclude Include="..\..\src\myDrone.h" />
     <ClInclude Include="..\..\src\pid.hpp" />
   </ItemGroup>
   <ItemGroup>

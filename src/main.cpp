@@ -58,7 +58,6 @@ int main(int argc, char *argv[]) {
 	ARDrone ardrone;
 	Mat error(4, 1, CV_64F);
 	Mat move_dir(4, 1, CV_64F);
-
 	// Initialize
 	if (!ardrone.open()) {
 		std::cout << "Failed to initialize." << std::endl;
@@ -134,16 +133,20 @@ int main(int argc, char *argv[]) {
 			std::vector<std::vector<cv::Point2f>> corners;
 			cv::aruco::detectMarkers(image, dictionary, corners, ids);
 			std::vector<cv::Vec3d> rvecs, tvecs;
+
+
+
 			if (ids.size() != 0) {//if dect marker
 				cv::aruco::estimatePoseSingleMarkers(corners, markerLength, cameraMatrix, distCoeffs, rvecs, tvecs);
 				//drawAxis会导致多个mark出BUG
 				aruco::drawAxis(image, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1);
+				//tvecs的
 				//2 是前后
 				//1 是上下
 				//0 是左右
+				error.at<double>(0, 0) = tvecs[0][2];
 				error.at<double>(1, 0) = tvecs[0][0];
 				error.at<double>(2, 0) = tvecs[0][1];
-				error.at<double>(0, 0) = tvecs[0][2];
 				error.at<double>(3, 0) = rvecs[0][2];
 				double tem = rvecs[0][0] * rvecs[0][2];
 				if (tem >= 0) {
