@@ -119,6 +119,7 @@ int main(int argc, char *argv[])
 			if (ids.size() != 0) {//if dect marker
 				cv::aruco::estimatePoseSingleMarkers(corners, markerLength, cameraMatrix, distCoeffs, rvecs, tvecs);
 //				cout << tvecs[0] << endl;
+				cout << ids[0] << endl;
 				aruco::drawAxis(image, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1);
 				//2 是前后
 				//1 是上下
