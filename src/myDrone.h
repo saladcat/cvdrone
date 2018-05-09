@@ -57,6 +57,7 @@ private:
 	//if (fact_distance - dist)<0.2 for all error in last 5 errors, return true;
 	bool go_head(double dist);
 
+	void getError(int markerIndex);
 	
 };
 

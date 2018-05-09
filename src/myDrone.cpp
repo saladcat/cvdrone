@@ -42,122 +42,123 @@ myDrone::~myDrone() {
 void myDrone::do_run() {
 	while (1) {
 		_image = _ardrone.getImage();
-		if (detectMark()) {
-			switch (_stage) {
-			case (0)://find the marker one
-				if ((_markIndex = getMarkerID(1)) == -1) {
-					setMoveDir(0, 0, 0, 0.5);
-				} else {
-					_stage = 1;
-				}
-				break;
-			case (1)://face the marker one
-				if (getMarkerID(1) == -1) {
-					_stage = 0;
-					setMoveDir(0, 0, 0, 0);
-					break;
-				} else {
-					if (face_ahead()) {
-						_stage = 2;
-						break;
-					} else {
-						setMoveDir(0, 0, 0, _error.at<double>(3, 0));
-					}
-				}
-				break;
-			case(2)://go ahead,until see mark two
-				if (getMarkerID(2) != -1) {
-					_markIndex = getMarkerID(2);
-					_stage = 3;
-				} else {
-					setMoveDir(1, 0, 0, _error.at<double>(3, 0));
-				}
-				break;
-			case(3)://see mark two,go untill distance equal to 1 meter 
-				if (go_head(1.0)) {
-					_stage = 4;
-				}
-				break;
-			case(4)://turn around untill see mark three
-				if (getMarkerID(3) != -1) {
-					_markIndex = getMarkerID(3);
-					_stage = 5;
-				} else {
-					setMoveDir(0, 0, 0, 0.5);
-				}
-			case(5)://face to mark three
-				if (getMarkerID(3) == -1) {
-					_stage = 4;
-					setMoveDir(0, 0, 0, 0);
-					break;
-				} else {
-					if (face_ahead()) {
-						_stage = 6;
-						break;
-					} else {
-						setMoveDir(0, 0, 0, _error.at<double>(3, 0));
-					}
-				}
-				break;
-			case(6)://go ahead untill distance =1;
-				if (go_head(1.0)) {
-					_stage = 7;
-				}
-				break;
-			case(7):// turn around untill see mark four;
-				if (getMarkerID(4) != -1) {
-					_markIndex = getMarkerID(4);
-					_stage = 8;
-				} else {
-					setMoveDir(0, 0, 0, 0.5);
-				}
-			case (8)://face to mark four 
-				if (getMarkerID(4) == -1) {
-					_stage = 7;
-					setMoveDir(0, 0, 0, 0);
-					break;
-				} else {
-					if (face_ahead()) {
-						_stage = 9;
-						break;
-					} else {
-						setMoveDir(0, 0, 0, _error.at<double>(3, 0));
-					}
-				}
-				break;
-			case(9)://go ahead untill distance =1;
-				if (go_head(1.0)) {
-					_stage = 10;
-				}
-				break;
-			case (10):// prepare landing or can't find the mark 5;
-				if (changeCamera()) {
-					_stage = 11;
-				} else {
-					setMoveDir(0, 0, 1, 0.5);
-				}
-			case(11):// do landing;
-				if (getMarkerID(5) == -1) {//can't find mark 5
-					_stage = 10;
-				} else {
-					_markIndex = getMarkerID(5);
-					//todo landing
-				}
-			default:
-				cout << "!!!!!!!!!wrong there" << endl;
-			}
-			//save error
-			if (lastFiveError.size() > 5) {
-				lastFiveError.pop_front();
-			}
-			vector<double> temError;
-			temError.push_back(_error.at<double>(0, 0));
-			temError.push_back(_error.at<double>(1, 0));
-			temError.push_back(_error.at<double>(2, 0));
-			temError.push_back(_error.at<double>(3, 0));
-			lastFiveError.push_back(temError);
 
+		switch (_stage) {
+		case (0)://find the marker one
+			if (detectMark() && getMarkerID(1) != -1) {
+				_stage = 1;
+			} else {
+				setMoveDir(0, 0, 0, 0.5);
+			}
+			break;
+		case (1)://face the marker one
+			if (detectMark() && (_markIndex = getMarkerID(1)) != -1) {
+				getError(_markIndex);
+				if (face_ahead()) {
+					_stage = 2;
+					break;
+				} else {
+					setMoveDir(0, 0, 0, _error.at<double>(3, 0));
+				}
+			} else {
+				_stage = 0;
+				setMoveDir(0, 0, 0, 0);
+				break;
+			}
+			break;
+		case(2)://go ahead,until see mark two
+			if (detectMark() && getMarkerID(2) != -1) {
+				_markIndex = getMarkerID(2);
+				_stage = 3;
+			} else {
+				setMoveDir(1, 0, 0, 0);
+			}
+			break;
+		case(3)://see mark two,go untill distance equal to 1 meter 
+			if (go_head(1.0)) {
+				_stage = 4;
+			}
+			break;
+		case(4)://turn around untill see mark three
+			if (detectMark() && getMarkerID(3) != -1) {
+				_markIndex = getMarkerID(3);
+				_stage = 5;
+			} else {
+				setMoveDir(0, 0, 0, 0.5);
+			}
+		case(5)://face to mark three
+			if (detectMark() && getMarkerID(3) == -1) {
+				_stage = 4;
+				setMoveDir(0, 0, 0, 0);
+				break;
+			} else {
+				if (face_ahead()) {
+					_stage = 6;
+					break;
+				} else {
+					setMoveDir(0, 0, 0, _error.at<double>(3, 0));
+				}
+			}
+			break;
+		case(6)://go ahead untill distance =1;
+			if (go_head(1.0)) {
+				_stage = 7;
+			}
+			break;
+		case(7):// turn around untill see mark four;
+			if (detectMark() && getMarkerID(4) != -1) {
+				_markIndex = getMarkerID(4);
+				_stage = 8;
+			} else {
+				setMoveDir(0, 0, 0, 0.5);
+			}
+		case (8)://face to mark four 
+			if (detectMark() && getMarkerID(4) == -1) {
+				_stage = 7;
+				setMoveDir(0, 0, 0, 0);
+				break;
+			} else {
+				if (face_ahead()) {
+					_stage = 9;
+					break;
+				} else {
+					setMoveDir(0, 0, 0, _error.at<double>(3, 0));
+				}
+			}
+			break;
+		case(9)://go ahead untill distance =1;
+			if (detectMark() && go_head(1.0)) {
+				_stage = 10;
+			}
+			break;
+		case (10):// prepare landing or can't find the mark 5;
+			if (changeCamera()) {
+				_stage = 11;
+			} else {
+				setMoveDir(0, 0, 1, 0.5);
+			}
+		case(11):// do landing;
+			if (getMarkerID(5) == -1) {//can't find mark 5
+				_stage = 10;
+			} else {
+				_markIndex = getMarkerID(5);
+				//do landing
+			}
+		default:
+			cout << "!!!!!!!!!wrong there" << endl;
 		}
+		//save error
+		if (lastFiveError.size() > 5) {
+			lastFiveError.pop_front();
+		}
+		vector<double> temError;
+		temError.push_back(_error.at<double>(0, 0));
+		temError.push_back(_error.at<double>(1, 0));
+		temError.push_back(_error.at<double>(2, 0));
+		temError.push_back(_error.at<double>(3, 0));
+		lastFiveError.push_back(temError);
+
+
 		getInput();
 		move();
 		cv::imshow("camera", _image);
@@ -232,31 +233,37 @@ bool myDrone::changeCamera(void) {
 }
 
 bool myDrone::detectMark() {
-	if (_ids.size() > 0 && _markIndex != -1) {
-		cv::aruco::detectMarkers(_image, _dictionary, _corners, _ids);
-		cv::aruco::estimatePoseSingleMarkers(_corners, markerLength, cameraMatrix, distCoeffs, _rvecs, _tvecs);
-		//tvecs的
-		//2 是前后
-		//1 是上下
-		//0 是左右
-		_error.at<double>(1, 0) = _tvecs[_markIndex][0];
-		_error.at<double>(2, 0) = _tvecs[_markIndex][1];
-		_error.at<double>(0, 0) = _tvecs[_markIndex][2];
-		_error.at<double>(3, 0) = _rvecs[_markIndex][2];
-		double tem = _rvecs[_markIndex][0] * _rvecs[_markIndex][2];
-		if (tem >= 0) {
-			_error.at<double>(3, 0) = fabs(_rvecs[_markIndex][2]);
-		} else {
-			_error.at<double>(3, 0) = -fabs(_rvecs[_markIndex][2]);
-		}
-		_error.at<double>(3, 0) += 0.20;
+	cv::aruco::detectMarkers(_image, _dictionary, _corners, _ids);
+	if (_ids.size() > 0) {
 		return true;
 	} else {
 		return false;
 	}
 }
+void myDrone::getError(int makerIndex) {
+	cv::aruco::estimatePoseSingleMarkers(_corners, markerLength, cameraMatrix, distCoeffs, _rvecs, _tvecs);
+	//tvecs的
+	//2 是前后
+	//1 是上下
+	//0 是左右
+	_error.at<double>(1, 0) = _tvecs[_markIndex][0];
+	_error.at<double>(2, 0) = _tvecs[_markIndex][1];
+	_error.at<double>(0, 0) = _tvecs[_markIndex][2];
+	_error.at<double>(3, 0) = _rvecs[_markIndex][2];
+	double tem = _rvecs[_markIndex][0] * _rvecs[_markIndex][2];
+	if (tem >= 0) {
+		_error.at<double>(3, 0) = fabs(_rvecs[_markIndex][2]);
+	} else {
+		_error.at<double>(3, 0) = -fabs(_rvecs[_markIndex][2]);
+	}
+	_error.at<double>(3, 0) += 0.20;
+
+	return;
+
+}
 
 bool myDrone::face_ahead(void) {
+	getError(_markIndex);
 	if (fabs(_error.at<double>(3, 0)) < 0.1) {
 		return true;
 	} else {
@@ -266,6 +273,8 @@ bool myDrone::face_ahead(void) {
 }
 
 bool myDrone::go_head(double dist) {
+	detectMark();
+	getError(_markIndex);
 	bool flag = true;
 	if (face_ahead()) {
 		double temVX = _error.at<double>(0, 0) - dist;
