@@ -159,7 +159,7 @@ void myDrone::do_run() {
 				_stage = 10;
 				setMoveDir(0, 0, 0, 0);
 			}
-			if (!detectMark()) {
+			if (!detectMark()) { 
 				if (lastFiveError.back()[0] > 1.8) {
 					setMoveDir(0.05*(lastFiveError.back()[0] - 1), 0, 0, 0);
 				} else {
