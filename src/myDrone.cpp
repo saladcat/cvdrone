@@ -1,6 +1,6 @@
 #include "myDrone.h"
 
-myDrone::myDrone() :_mode(0), _stage(0) {
+myDrone::myDrone() :_mode(0), _stage(-1), _error(4, 1, CV_64F), _move_dir(4, 1, CV_64F) {
 	PIDManager PID("pid.yaml");
 	if (!_ardrone.open()) {
 		std::cout << "Failed to initialize." << std::endl;
@@ -31,7 +31,6 @@ myDrone::myDrone() :_mode(0), _stage(0) {
 	std::cout << "*    'Esc'   -- Exit                  *" << std::endl;
 	std::cout << "*                                     *" << std::endl;
 	std::cout << "***************************************" << std::endl;
-
 }
 
 myDrone::~myDrone() {
@@ -40,19 +39,20 @@ myDrone::~myDrone() {
 }
 
 void myDrone::do_run() {
+	bool flag;
+	_stage = 1;
 	while (1) {
 		_image = _ardrone.getImage();
-
 		switch (_stage) {
 		case (0)://find the marker one
-			if (detectMark() && getMarkerID(1) != -1) {
+			if (detectMark() && getMarkerID(1) != -1) {// 若看到Mark2就直接跳倒stage 2
 				_stage = 1;
 			} else {
-				setMoveDir(0, 0, 0, 0.5);
+				setMoveDir(0, 0, 0, -0.1);
 			}
 			break;
 		case (1)://face the marker one
-			if (detectMark() && (_markIndex = getMarkerID(1)) != -1) {
+			if (detectMark() && (_markIndex = getMarkerID(1)) != -1) {// 若看到Mark2就直接跳倒stage 2
 				getError(_markIndex);
 				if (face_ahead()) {
 					_stage = 2;
@@ -62,6 +62,7 @@ void myDrone::do_run() {
 				}
 			} else {
 				_stage = 0;
+				lastFiveError.clear();
 				setMoveDir(0, 0, 0, 0);
 				break;
 			}
@@ -71,21 +72,35 @@ void myDrone::do_run() {
 				_markIndex = getMarkerID(2);
 				_stage = 3;
 			} else {
-				setMoveDir(1, 0, 0, 0);
+				setMoveDir(0.3, 0, 0, 0);
 			}
 			break;
-		case(3)://see mark two,go untill distance equal to 1 meter 
-			if (go_head(1.0)) {
+		case(3)://see mark two,go untill distance equal to 1 meter
+			setMoveDir(0, 0, 0, 0);
+			flag = go_head(1.2, 2);
+			if (flag) {
 				_stage = 4;
+				setMoveDir(0, 0, 0, 0);
 			}
+			if (!detectMark()) {
+				if (lastFiveError.back()[0] > 1.8) {
+					setMoveDir(0.05*(lastFiveError.back()[0] - 1), 0, 0, 0);
+				} else {
+					setMoveDir(-0.2, 0, 0, 0);
+				}
+			}
+
 			break;
 		case(4)://turn around untill see mark three
 			if (detectMark() && getMarkerID(3) != -1) {
 				_markIndex = getMarkerID(3);
 				_stage = 5;
+
 			} else {
-				setMoveDir(0, 0, 0, 0.5);
+				setMoveDir(0, 0, 0, -0.08);
+
 			}
+			break;
 		case(5)://face to mark three
 			if (detectMark() && getMarkerID(3) == -1) {
 				_stage = 4;
@@ -96,13 +111,23 @@ void myDrone::do_run() {
 					_stage = 6;
 					break;
 				} else {
-					setMoveDir(0, 0, 0, _error.at<double>(3, 0));
+					setMoveDir(0, 0, 0, 0.1*_error.at<double>(3, 0));
 				}
 			}
 			break;
 		case(6)://go ahead untill distance =1;
-			if (go_head(1.0)) {
+			setMoveDir(0, 0, 0, 0);
+			flag = go_head(1.2, 3);
+			if (flag) {
 				_stage = 7;
+				setMoveDir(0, 0, 0, 0);
+			}
+			if (!detectMark()) {
+				if (lastFiveError.back()[0] > 1.8) {
+					setMoveDir(0.05*(lastFiveError.back()[0] - 1), 0, 0, 0);
+				} else {
+					setMoveDir(-0.2, 0, 0, 0);
+				}
 			}
 			break;
 		case(7):// turn around untill see mark four;
@@ -110,8 +135,9 @@ void myDrone::do_run() {
 				_markIndex = getMarkerID(4);
 				_stage = 8;
 			} else {
-				setMoveDir(0, 0, 0, 0.5);
+				setMoveDir(0 , 0, 0, -0.08);
 			}
+			break;
 		case (8)://face to mark four 
 			if (detectMark() && getMarkerID(4) == -1) {
 				_stage = 7;
@@ -122,13 +148,23 @@ void myDrone::do_run() {
 					_stage = 9;
 					break;
 				} else {
-					setMoveDir(0, 0, 0, _error.at<double>(3, 0));
+					setMoveDir(0, 0, 0, 0.1*_error.at<double>(3, 0));
 				}
 			}
 			break;
 		case(9)://go ahead untill distance =1;
-			if (detectMark() && go_head(1.0)) {
+			setMoveDir(0, 0, 0, 0);
+			flag = go_head(1.2, 4);
+			if (flag) {
 				_stage = 10;
+				setMoveDir(0, 0, 0, 0);
+			}
+			if (!detectMark()) {
+				if (lastFiveError.back()[0] > 1.8) {
+					setMoveDir(0.05*(lastFiveError.back()[0] - 1), 0, 0, 0);
+				} else {
+					setMoveDir(-0.2, 0, 0, 0);
+				}
 			}
 			break;
 		case (10):// prepare landing or can't find the mark 5;
@@ -137,6 +173,7 @@ void myDrone::do_run() {
 			} else {
 				setMoveDir(0, 0, 1, 0.5);
 			}
+			break;
 		case(11):// do landing;
 			if (getMarkerID(5) == -1) {//can't find mark 5
 				_stage = 10;
@@ -144,20 +181,23 @@ void myDrone::do_run() {
 				_markIndex = getMarkerID(5);
 				//do landing
 			}
+			break;
 		default:
-			cout << "!!!!!!!!!wrong there" << endl;
+			cout << "waiting " << endl;
 		}
 		//save error
-		if (lastFiveError.size() > 5) {
-			lastFiveError.pop_front();
+		cout << _stage << endl;
+		if (_markIndex != -1) {
+			if (lastFiveError.size() > 5) {
+				lastFiveError.pop_front();
+			}
+			vector<double> temError;
+			temError.push_back(_error.at<double>(0, 0));
+			temError.push_back(_error.at<double>(1, 0));
+			temError.push_back(_error.at<double>(2, 0));
+			temError.push_back(_error.at<double>(3, 0));
+			lastFiveError.push_back(temError);
 		}
-		vector<double> temError;
-		temError.push_back(_error.at<double>(0, 0));
-		temError.push_back(_error.at<double>(1, 0));
-		temError.push_back(_error.at<double>(2, 0));
-		temError.push_back(_error.at<double>(3, 0));
-		lastFiveError.push_back(temError);
-
 
 		getInput();
 		move();
@@ -189,6 +229,9 @@ bool myDrone::getInput(void) {
 	}
 	if (key == ' ') {
 		if (_ardrone.onGround()) {
+			if (_stage == -1) {
+				_stage = 0;
+			}
 			_ardrone.takeoff();
 		} else {
 			_ardrone.landing();
@@ -220,6 +263,9 @@ void myDrone::move(void) {
 		_move_dir.at<double>(1, 0),
 		_move_dir.at<double>(2, 0),
 		_move_dir.at<double>(3, 0));
+	printf("%f, %f, %f, %f \n", _move_dir.at<double>(0, 0), _move_dir.at<double>(1, 0),
+		_move_dir.at<double>(2, 0),
+		_move_dir.at<double>(3, 0));
 }
 
 bool myDrone::changeCamera(void) {
@@ -235,6 +281,7 @@ bool myDrone::changeCamera(void) {
 bool myDrone::detectMark() {
 	cv::aruco::detectMarkers(_image, _dictionary, _corners, _ids);
 	if (_ids.size() > 0) {
+		cv::aruco::estimatePoseSingleMarkers(_corners, markerLength, cameraMatrix, distCoeffs, _rvecs, _tvecs);
 		return true;
 	} else {
 		return false;
@@ -264,7 +311,7 @@ void myDrone::getError(int makerIndex) {
 
 bool myDrone::face_ahead(void) {
 	getError(_markIndex);
-	if (fabs(_error.at<double>(3, 0)) < 0.1) {
+	if (fabs(_error.at<double>(3, 0)) < 0.05) {
 		return true;
 	} else {
 		setMoveDir(0, 0, 0, _error.at<double>(3, 0));
@@ -272,18 +319,25 @@ bool myDrone::face_ahead(void) {
 	}
 }
 
-bool myDrone::go_head(double dist) {
-	detectMark();
-	getError(_markIndex);
+bool myDrone::go_head(double dist, int id) {
+
 	bool flag = true;
-	if (face_ahead()) {
+	if (detectMark() && ((_markIndex = getMarkerID(id)) != -1)) {
+		getError(_markIndex);
 		double temVX = _error.at<double>(0, 0) - dist;
+
 		if (fabs(temVX) < 0.08) {
 			temVX = 0;
 		}
-		_move_dir.at<double>(0, 0) = temVX;//without using setMoveDir() 'cause face_ahead
+		setMoveDir(0, 0, 0, 0);
+		_move_dir.at<double>(0, 0) = 0.2*temVX;//without using setMoveDir() 'cause face_ahead
+		_move_dir.at<double>(3, 0) = _error.at<double>(3, 0);
+		_move_dir.at<double>(1, 0) = -0.5*_error.at<double>(1, 0);
+		cout << _error.at<double>(0, 0) << endl;
+		if (fabs(_error.at<double>(0, 0) - dist) > 0.08)
+			flag = false;
 		for (auto &item : lastFiveError) {
-			if ((item[0] - dist) > 0.2) {
+			if (fabs(item[0] - dist) > 0.1) {
 				flag = false;
 			}
 		}

@@ -15,12 +15,14 @@
 #include <list>
 using namespace std;
 using namespace cv;
-const int markerLength = 0.094;
+const double markerLength = 0.094;
 class myDrone {
 public:
 	myDrone();
 	~myDrone();
 	void do_run();
+	ARDrone _ardrone;
+
 private:
 	int _stage;
 	int _markIndex;
@@ -31,7 +33,6 @@ private:
 	vector<std::vector<cv::Point2f>> _corners;
 	vector<Vec3d> _rvecs, _tvecs;
 	Mat cameraMatrix, distCoeffs;
-	ARDrone _ardrone;
 	cv::aruco::Dictionary _dictionary;
 	list<vector<double>> lastFiveError;
 	int _mode;
@@ -55,7 +56,7 @@ private:
 	//if it's facing front return true,otherwise change move_dir to face and return false;
 	bool face_ahead(void);
 	//if (fact_distance - dist)<0.2 for all error in last 5 errors, return true;
-	bool go_head(double dist);
+	bool go_head(double dist, int id);
 
 	void getError(int markerIndex);
 	
