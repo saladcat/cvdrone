@@ -40,31 +40,62 @@ myDrone::~myDrone() {
 
 void myDrone::do_run() {
 	bool flag;
-	_stage = 1;
 	while (1) {
 		_image = _ardrone.getImage();
 		switch (_stage) {
 		case (0)://find the marker one
-			if (detectMark() && getMarkerID(1) != -1) {// 若看到Mark2就直接跳倒stage 2
+			/*if (detectMark() && getMarkerID(1) != -1) {// 若看到Mark2就直接跳倒stage 2
 				_stage = 1;
+			} else {
+				setMoveDir(0, 0, 0, -0.1);
+			}*/
+			if (detectMark()) {
+				if (getMarkerID(2) != -1) {     //see mark2
+					_stage = 2;
+				} else if (getMarkerID(1) != -1) {   //see mark1
+					_stage = 1;
+				} else {
+					setMoveDir(0, 0, 0, -0.1);
+				}
 			} else {
 				setMoveDir(0, 0, 0, -0.1);
 			}
 			break;
 		case (1)://face the marker one
-			if (detectMark() && (_markIndex = getMarkerID(1)) != -1) {// 若看到Mark2就直接跳倒stage 2
+			/*if (detectMark() && (_markIndex = getMarkerID(1)) != -1) {// 若看到Mark2就直接跳倒stage 2
 				getError(_markIndex);
 				if (face_ahead()) {
 					_stage = 2;
 					break;
 				} else {
-					setMoveDir(0, 0, 0, _error.at<double>(3, 0));
+					setMoveDir(0, 0, 0, 0.2*_error.at<double>(3, 0));
 				}
 			} else {
 				_stage = 0;
 				lastFiveError.clear();
 				setMoveDir(0, 0, 0, 0);
 				break;
+			}*/
+			if (detectMark()) {
+				if (getMarkerID(1) != -1) {
+					_markIndex = getMarkerID(1);
+					getError(_markIndex);
+					if (face_ahead()) {
+						_stage = 2;
+						break;
+					} else {
+						setMoveDir(0, 0, 0, 0.2*_error.at<double>(3, 0));
+					}
+				}
+				if (getMarkerID(2) != -1) {
+					_markIndex = getMarkerID(2);
+					_stage = 2;
+				}
+
+			} else {
+				_stage = 0;
+				lastFiveError.clear();
+				setMoveDir(0, 0, 0, 0);
 			}
 			break;
 		case(2)://go ahead,until see mark two
@@ -72,12 +103,12 @@ void myDrone::do_run() {
 				_markIndex = getMarkerID(2);
 				_stage = 3;
 			} else {
-				setMoveDir(0.3, 0, 0, 0);
+				setMoveDir(0.4, 0, 0, 0);
 			}
 			break;
-		case(3)://see mark two,go untill distance equal to 1 meter
+		case(3)://see mark two,go until distance equal to 1 meter
 			setMoveDir(0, 0, 0, 0);
-			flag = go_head(1.2, 2);
+			flag = go_head(1.0, 2);
 			if (flag) {
 				_stage = 4;
 				setMoveDir(0, 0, 0, 0);
@@ -107,22 +138,28 @@ void myDrone::do_run() {
 				setMoveDir(0, 0, 0, 0);
 				break;
 			} else {
-				if (face_ahead()) {
-					_stage = 6;
-					break;
+				_markIndex = getMarkerID(3);
+				if (_markIndex != -1) {
+					if (face_ahead()) {
+						_stage = 6;
+						break;
+					} else {
+						setMoveDir(0, 0, 0, 0.1*_error.at<double>(3, 0));
+					}
 				} else {
-					setMoveDir(0, 0, 0, 0.1*_error.at<double>(3, 0));
+					setMoveDir(0.2, 0, 0, 0);
 				}
 			}
 			break;
 		case(6)://go ahead untill distance =1;
 			setMoveDir(0, 0, 0, 0);
-			flag = go_head(1.2, 3);
+			flag = go_head(1.0, 3);
 			if (flag) {
 				_stage = 7;
 				setMoveDir(0, 0, 0, 0);
 			}
 			if (!detectMark()) {
+				printf("aaaaaaaaaaaaaaaaaaaaa\n");
 				if (lastFiveError.back()[0] > 1.8) {
 					setMoveDir(0.05*(lastFiveError.back()[0] - 1), 0, 0, 0);
 				} else {
@@ -135,7 +172,7 @@ void myDrone::do_run() {
 				_markIndex = getMarkerID(4);
 				_stage = 8;
 			} else {
-				setMoveDir(0 , 0, 0, -0.08);
+				setMoveDir(0, 0, 0, -0.08);
 			}
 			break;
 		case (8)://face to mark four 
@@ -144,22 +181,28 @@ void myDrone::do_run() {
 				setMoveDir(0, 0, 0, 0);
 				break;
 			} else {
-				if (face_ahead()) {
-					_stage = 9;
-					break;
+				_markIndex = getMarkerID(4);
+				if (_markIndex != -1) {
+					if (face_ahead()) {
+						_stage = 9;
+						break;
+					} else {
+
+						setMoveDir(0, 0, 0, 0.1*_error.at<double>(3, 0));
+					}
 				} else {
-					setMoveDir(0, 0, 0, 0.1*_error.at<double>(3, 0));
+					setMoveDir(0.2, 0, 0, 0);
 				}
 			}
 			break;
 		case(9)://go ahead untill distance =1;
 			setMoveDir(0, 0, 0, 0);
-			flag = go_head(1.2, 4);
+			flag = go_head(1.0, 4);
 			if (flag) {
 				_stage = 10;
 				setMoveDir(0, 0, 0, 0);
 			}
-			if (!detectMark()) { 
+			if (!detectMark()) {
 				if (lastFiveError.back()[0] > 1.8) {
 					setMoveDir(0.05*(lastFiveError.back()[0] - 1), 0, 0, 0);
 				} else {
@@ -168,18 +211,38 @@ void myDrone::do_run() {
 			}
 			break;
 		case (10):// prepare landing or can't find the mark 5;
-			if (changeCamera()) {
+			if (_mode % 2 == 0) {
+				_mode++;
+				_ardrone.setCamera(_mode % 4);
 				_stage = 11;
 			} else {
-				setMoveDir(0, 0, 1, 0.5);
+				setMoveDir(0, 0, 0.4, 0.5);
+				_stage = 11;
 			}
 			break;
 		case(11):// do landing;
-			if (getMarkerID(5) == -1) {//can't find mark 5
-				_stage = 10;
-			} else {
-				_markIndex = getMarkerID(5);
-				//do landing
+			if (detectMark()) {
+				if (getMarkerID(5) == -1) {//can't find mark 5
+					_stage = 10;
+				} else {
+					_markIndex = getMarkerID(5);
+					getError(_markIndex);
+					double temz = _error.at<double>(0, 0);
+					double vx = -0.8*temz* _error.at<double>(2, 0);
+					double vy = -1.6*temz*_error.at<double>(1, 0);
+					double vz = 0;
+					double vr = 0;
+					if (fabs(_error.at<double>(1, 0)) < 0.1 * 2 && fabs(_error.at<double>(2, 0)) < 0.06 * 2) {
+						vx = 0;
+						vy = 0;
+						vz = -0.2;
+						if (_error.at<double>(0, 0) < 0.85) {
+							_ardrone.landing();
+						}
+					}
+					setMoveDir(vx, vy, vz, vr);//todo
+				}
+
 			}
 			break;
 		default:
@@ -263,9 +326,11 @@ void myDrone::move(void) {
 		_move_dir.at<double>(1, 0),
 		_move_dir.at<double>(2, 0),
 		_move_dir.at<double>(3, 0));
-	printf("%f, %f, %f, %f \n", _move_dir.at<double>(0, 0), _move_dir.at<double>(1, 0),
-		_move_dir.at<double>(2, 0),
-		_move_dir.at<double>(3, 0));
+	if (!_ardrone.onGround()) {
+		printf("%f, %f, %f, %f \n", _move_dir.at<double>(0, 0), _move_dir.at<double>(1, 0),
+			_move_dir.at<double>(2, 0),
+			_move_dir.at<double>(3, 0));
+	}
 }
 
 bool myDrone::changeCamera(void) {
@@ -303,7 +368,7 @@ void myDrone::getError(int makerIndex) {
 	} else {
 		_error.at<double>(3, 0) = -fabs(_rvecs[_markIndex][2]);
 	}
-	_error.at<double>(3, 0) += 0.20;
+	_error.at<double>(3, 0) += 0.20;//todo 
 
 	return;
 
@@ -332,7 +397,9 @@ bool myDrone::go_head(double dist, int id) {
 		setMoveDir(0, 0, 0, 0);
 		_move_dir.at<double>(0, 0) = 0.2*temVX;//without using setMoveDir() 'cause face_ahead
 		_move_dir.at<double>(3, 0) = _error.at<double>(3, 0);
-		_move_dir.at<double>(1, 0) = -0.5*_error.at<double>(1, 0);
+		_move_dir.at<double>(1, 0) = -0.2*_error.at<double>(1, 0);
+		if (_move_dir.at<double>(1, 0) <= 0.01)
+			_move_dir.at<double>(1, 0) = 0;
 		cout << _error.at<double>(0, 0) << endl;
 		if (fabs(_error.at<double>(0, 0) - dist) > 0.08)
 			flag = false;
