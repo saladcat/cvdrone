@@ -182,7 +182,7 @@ void myDrone::do_run() {
 						setMoveDir(0, 0, 0, 0.1*_error.at<double>(3, 0));
 					}
 				} else {
-					setMoveDir(0.2, 0, 0, 0);
+					setMoveDir(0.2, -0.1*lastFiveError.back()[1], 0, 0);
 				}
 			}
 			break;
@@ -396,7 +396,7 @@ bool myDrone::go_head(double dist, int id) {
 		_move_dir.at<double>(0, 0) = 0.17*temVX;//without using setMoveDir() 'cause face_ahead //modify todo 0.2->0.1
 		_move_dir.at<double>(3, 0) = _error.at<double>(3, 0);
 
-		_move_dir.at<double>(1, 0) = -0.10*_error.at<double>(1, 0);//modify todo 0.2->0.1
+		_move_dir.at<double>(1, 0) = -0.11*_error.at<double>(1, 0);//modify todo 0.2->0.1
 //		if (_move_dir.at<double>(1, 0) <= 0.01)
 //			_move_dir.at<double>(1, 0) = 0;
 		cout << _error.at<double>(0, 0) << endl;
