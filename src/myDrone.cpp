@@ -213,7 +213,7 @@ void myDrone::do_run() {
 				_ardrone.setCamera(_mode % 4);
 				_stage = 11;
 			} else {
-				setMoveDir(0, 0, 0.4, 0.5);
+				setMoveDir(0, 0, 0, -0.2);
 				_stage = 11;
 			}
 			break;
