@@ -22,10 +22,11 @@ public:
 	~myDrone();
 	void do_run();
 	ARDrone _ardrone;
-
+	void run_final();
 private:
 	int _stage;
 	int _markIndex;
+	CascadeClassifier face_cascade;
 	Mat _image;
 	Mat _move_dir;
 	Mat _error;
@@ -36,6 +37,7 @@ private:
 	cv::aruco::Dictionary _dictionary;
 	list<vector<double>> lastFiveError;
 	int _mode;
+	int _pic_size;
 	//set move_dir
 	//vx,vy,vz,vr
 	void setMoveDir(double vx, double vy,double vz,double vr);
@@ -60,5 +62,6 @@ private:
 
 	void getError(int markerIndex);
 	
+	bool dectFace(void);
 };
 

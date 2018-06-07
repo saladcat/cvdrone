@@ -10,7 +10,13 @@ myDrone::myDrone() :_mode(0), _stage(-1), _error(4, 1, CV_64F), _move_dir(4, 1, 
 	fs["distortion"] >> distCoeffs;
 	_dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
 	std::cout << "Battery = " << _ardrone.getBatteryPercentage() << "[%]" << std::endl;
-
+	//--------------------------------------------
+	//face dect
+	String face_cascade_name = "haarcascade_frontalface_alt.xml";
+	if (!face_cascade.load(face_cascade_name)) {
+		printf("load classifier error\n");
+	}
+	//**********************************************
 	// Instructions
 	std::cout << "***************************************" << std::endl;
 	std::cout << "*       CV Drone sample program       *" << std::endl;
@@ -36,7 +42,7 @@ myDrone::myDrone() :_mode(0), _stage(-1), _error(4, 1, CV_64F), _move_dir(4, 1, 
 myDrone::~myDrone() {
 	_ardrone.landing();
 	_ardrone.close();
-} 
+}
 
 void myDrone::do_run() {
 	bool flag;
@@ -139,7 +145,7 @@ void myDrone::do_run() {
 			if (waitTimeFaceMarker3 != 0) {
 				waitTimeFaceMarker3 -= 1;
 				setMoveDir(0, 0, 0, 0);
-				cout << "************** " <<waitTimeFaceMarker3<< endl;
+				cout << "************** " << waitTimeFaceMarker3 << endl;
 				move();
 				break;
 			}
@@ -266,6 +272,88 @@ void myDrone::do_run() {
 	}
 }
 
+void myDrone::run_final() {
+	int stage_time = 0;
+	bool flag;
+	int waitTimeFaceMarker3 = 1000 / 33;
+	int waitTimeFaceMarker4 = 1000 / 33;
+	_stage = 0;
+	while (1) {
+		_image = _ardrone.getImage();
+		switch (_stage) {
+		case(0):
+			if (detectMark()) {
+				if (getMarkerID(12) != -1) {   //see mark1
+					_stage = 1;
+				} else {
+					setMoveDir(0, 0, 0, -0.1);
+				}
+			} else {
+				setMoveDir(0, 0, 0, -0.1);
+			}
+			break;
+		case(1):// see LBJ
+			if (dectFace()) {
+				if (_pic_size > 70) {
+					cout << "start turn right" << endl;
+					stage_time = 1000 / 33;
+					_stage = 2;
+				} else {
+					setMoveDir(1.0, 0, 0, 0);
+				}
+			} else {
+				setMoveDir(1.0, 0, 0, 0);
+			}
+			break;
+		case(2)://shift right 1 sec
+			if (stage_time > 0) {
+				stage_time--;
+				setMoveDir(0, 1.0, 0, 0);
+			}else{
+				_stage = 3;
+				stage_time = 1000 / 33;
+			}
+			break;
+		case(3)://go ahead 1 sec
+			if (stage_time > 0) {
+				stage_time--;
+				setMoveDir(1.0, 0, 0, 0);
+			} else {
+				_stage = 4;
+				stage_time = 1000 / 33;
+			}
+			break;
+		case(4)://shift left 1 sec 
+			if (stage_time > 0) {
+				stage_time--;
+				setMoveDir(0, -1.0, 0, 0);
+			} else {
+				_stage = 5;
+				stage_time = 1000 / 33;
+			}
+			break;
+		case(5):// set mark git 
+			if (stage_time > 0) {
+				stage_time--;
+				setMoveDir(0, -1.0, 0, 0);
+			} else {
+				_stage = 5;
+				stage_time = 1000 / 33;
+			}
+			break;
+		default:
+			break;
+		}
+		if (dectFace()) {
+			cout << "1" << endl;
+		} else {
+			cout << "0" << endl;
+		}
+		imshow("haha", _image);
+		waitKey(33);
+	}
+}
+
 void myDrone::setMoveDir(double vx, double vy, double vz, double vr) {
 	_move_dir.at<double>(0, 0) = vx;
 	_move_dir.at<double>(1, 0) = vy;
@@ -350,6 +438,7 @@ bool myDrone::detectMark() {
 		return false;
 	}
 }
+
 void myDrone::getError(int makerIndex) {
 	cv::aruco::estimatePoseSingleMarkers(_corners, markerLength, cameraMatrix, distCoeffs, _rvecs, _tvecs);
 	//tvecsµÄ
@@ -413,4 +502,27 @@ bool myDrone::go_head(double dist, int id) {
 	} else {
 		return false;
 	}
+}
+
+bool myDrone::dectFace(void) {
+	Mat img_gray;
+	cvtColor(_image, img_gray, CV_BGR2GRAY);
+	equalizeHist(img_gray, img_gray);
+
+	vector<Rect> faces;
+	face_cascade.detectMultiScale(img_gray, faces, 1.1, 3, 0, Size(20, 20));
+	if (faces.size() > 0) {
+		_pic_size = 0;
+		for (size_t i = 0; i < faces.size(); i++) {
+			if (faces[i].height > 0 && faces[i].width > 0) {
+				rectangle(_image, faces[i], Scalar(0, 0, 255), 3, 8, 0);
+			}
+			cout << faces[i] << endl;
+			_pic_size = max(_pic_size, faces[i].height);
+		}
+		return true;
+	} else {
+		return false;
+	}
+
 }

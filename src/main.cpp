@@ -23,7 +23,7 @@ using namespace cv;
 
 int main(int argc, char *argv[]) {
 	myDrone mydrone;
-	mydrone.do_run();
+	mydrone.run_final();
 
 	return 0;
 }
