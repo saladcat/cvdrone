@@ -274,17 +274,21 @@ void myDrone::do_run() {
 
 void myDrone::run_final() {
 	int stage_time = 0;
+	int times = 0;
 	bool flag;
 	int waitTimeFaceMarker3 = 1000 / 33;
 	int waitTimeFaceMarker4 = 1000 / 33;
-	_stage = 0;
+
+	_stage = -99;
 	while (1) {
 		_image = _ardrone.getImage();
+		times++;
+		setMoveDir(0, 0, 0, 0);
 		switch (_stage) {
 		case(0):
 			if (detectMark()) {
-				if (getMarkerID(12) != -1) {   //see mark1
-					_stage = 1;
+				if (getMarkerID(1) != -1) {   //see mark1
+					_stage = -1;
 				} else {
 					setMoveDir(0, 0, 0, -0.1);
 				}
@@ -292,68 +296,186 @@ void myDrone::run_final() {
 				setMoveDir(0, 0, 0, -0.1);
 			}
 			break;
+		case (-1):
+
+			if (detectMark()) {
+				if (getMarkerID(1) != -1) {
+					_markIndex = getMarkerID(1);
+					getError(_markIndex);
+					if (face_ahead()) {
+						_stage = 1;
+						break;
+					} else {
+						setMoveDir(0, 0, 0, 0.2*_error.at<double>(3, 0));
+					}
+				}
+				if (getMarkerID(2) != -1) {
+					_markIndex = getMarkerID(2);
+					_stage = 1;
+				}
+
+			} else {
+				_stage = 0;
+				lastFiveError.clear();
+				setMoveDir(0, 0, 0, 0);
+			}
+			break;
 		case(1):// see LBJ
-			if (dectFace()) {
+			bool tmp_flag = detectMark();
+			if (times % 5 == 0 && dectFace()) {
 				if (_pic_size > 70) {
 					cout << "start turn right" << endl;
 					stage_time = 1000 / 33;
 					_stage = 2;
 				} else {
-					setMoveDir(1.0, 0, 0, 0);
+					if (tmp_flag) {
+						//_markIndex = 0;
+						getError(0);
+						setMoveDir(0.3, 0, 0, 0.2*_error.at<double>(3, 0));
+					} else {
+						setMoveDir(0.3, 0, 0, 0);
+					}
 				}
 			} else {
-				setMoveDir(1.0, 0, 0, 0);
+				if (tmp_flag) {
+					//_markIndex = 0;
+					getError(0);
+					setMoveDir(0.3, 0, 0, 0.2*_error.at<double>(3, 0));
+				} else {
+					setMoveDir(0.3, 0, 0, 0);
+				}
 			}
 			break;
 		case(2)://shift right 1 sec
 			if (stage_time > 0) {
 				stage_time--;
-				setMoveDir(0, 1.0, 0, 0);
-			}else{
+				setMoveDir(0, -0.3, 0, 0);
+			} else {
 				_stage = 3;
-				stage_time = 1000 / 33;
+				stage_time = 3000 / 33;
+				cout << "start go ahead " << endl;
 			}
 			break;
-		case(3)://go ahead 1 sec
+		case(3)://go ahead 2 sec
 			if (stage_time > 0) {
 				stage_time--;
-				setMoveDir(1.0, 0, 0, 0);
+				if (stage_time > 2000 / 33) {
+					setMoveDir(0, 0, 0, 0);
+				} else {
+					setMoveDir(0.5, 0, 0, 0);
+				}
 			} else {
 				_stage = 4;
-				stage_time = 1000 / 33;
+				stage_time = 2500 / 33;
+				cout << "start turn left " << endl;
+
 			}
 			break;
 		case(4)://shift left 1 sec 
 			if (stage_time > 0) {
 				stage_time--;
-				setMoveDir(0, -1.0, 0, 0);
+				if (stage_time > 1500 / 33) {
+					setMoveDir(0, 0, 0, 0);
+				} else {
+					setMoveDir(0, 0.5, 0, 0);
+				}
 			} else {
 				_stage = 5;
-				stage_time = 1000 / 33;
 			}
 			break;
-		case(5):// set mark git 
-			if (stage_time > 0) {
-				stage_time--;
-				setMoveDir(0, -1.0, 0, 0);
+			//****************************************************
+		case(5)://go ahead,until see mark two
+			if (detectMark() && getMarkerID(2) != -1) {
+				_markIndex = getMarkerID(2);
+				_stage = 3;
 			} else {
-				_stage = 5;
-				stage_time = 1000 / 33;
+				setMoveDir(0.4, 0, 0, 0);
+			}
+			break;
+		case(6):// set mark 2 
+			setMoveDir(0, 0, 0, 0);
+			flag = go_head(1.0, 2);
+			if (flag) {
+				setMoveDir(0, 0, 0, 0);
+			}
+			if (!detectMark()) {
+				if (lastFiveError.back()[0] > 1.8) {
+					setMoveDir(0.05*(lastFiveError.back()[0] - 1), 0, 0, 0);
+				} else {
+					setMoveDir(-0.2, -0.1*lastFiveError.back()[1], 0, 0);
+				}
+			}
+			break;
+		case(7)://turn around to see mark 3 //todo 
+			if (detectMark() && getMarkerID(4) != -1) {
+				_markIndex = getMarkerID(4);
+				_stage = 8;
+			} else {
+				setMoveDir(0, 0, 0, -0.08);
+			}
+			break;
+		case (8)://face to mark four 
+			if (detectMark() && getMarkerID(4) == -1) {
+				_stage = 7;
+				setMoveDir(0, 0, 0, 0);
+				break;
+			} else {
+				_markIndex = getMarkerID(4);
+				if (_markIndex != -1) {
+					if (face_ahead()) {
+						_stage = 9;
+						break;
+					} else {
+
+						setMoveDir(0, 0, 0, 0.1*_error.at<double>(3, 0));
+					}
+				} else {
+					setMoveDir(0.2, -0.1*lastFiveError.back()[1], 0, 0);
+				}
+			}
+			break;
+		case(9)://go ahead untill distance =1;
+			if (waitTimeFaceMarker4 != 0) {
+				waitTimeFaceMarker4 -= 1;
+				setMoveDir(0, 0, 0, 0);
+				move();
+				break;
+			}
+			setMoveDir(0, 0, 0, 0);
+			flag = go_head(1.0, 4);
+			if (flag) {
+				_stage = 9;
+				setMoveDir(0, 0, 0, 0);
+			}
+			if (!detectMark()) {
+				if (lastFiveError.back()[0] > 1.8) {
+					setMoveDir(0.05*(lastFiveError.back()[0] - 1), 0, 0, 0);
+				} else {
+					setMoveDir(-0.2, 0, 0, 0);
+				}
 			}
 			break;
 		default:
 			break;
 		}
-		if (dectFace()) {
-			cout << "1" << endl;
-		} else {
-			cout << "0" << endl;
+		cout << _stage << endl;
+		if (_markIndex != -1) {
+			if (lastFiveError.size() > 5) {
+				lastFiveError.pop_front();
+			}
+			vector<double> temError;
+			temError.push_back(_error.at<double>(0, 0));
+			temError.push_back(_error.at<double>(1, 0));
+			temError.push_back(_error.at<double>(2, 0));
+			temError.push_back(_error.at<double>(3, 0));
+			lastFiveError.push_back(temError);
 		}
-		imshow("haha", _image);
-		waitKey(33);
+
+		getInput();
+		move();
+		cv::imshow("camera", _image);
 	}
 }
-
 void myDrone::setMoveDir(double vx, double vy, double vz, double vr) {
 	_move_dir.at<double>(0, 0) = vx;
 	_move_dir.at<double>(1, 0) = vy;
@@ -397,7 +519,7 @@ bool myDrone::getInput(void) {
 	if (key == 'q') vz = 1.0;
 	if (key == 'a') vz = -1.0;
 	if (key == 'c') _ardrone.setCamera(++_mode % 4);
-
+	if (key == 't') _stage = 1;
 	if (key != -1) {
 		setMoveDir(vx, vy, vz, vr);
 		return true;
@@ -438,7 +560,6 @@ bool myDrone::detectMark() {
 		return false;
 	}
 }
-
 void myDrone::getError(int makerIndex) {
 	cv::aruco::estimatePoseSingleMarkers(_corners, markerLength, cameraMatrix, distCoeffs, _rvecs, _tvecs);
 	//tvecsµÄ
@@ -463,7 +584,7 @@ void myDrone::getError(int makerIndex) {
 
 bool myDrone::face_ahead(void) {
 	getError(_markIndex);
-	if (fabs(_error.at<double>(3, 0)) < 0.05) {
+	if (fabs(_error.at<double>(3, 0)) < 0.03) {
 		return true;
 	} else {
 		setMoveDir(0, 0, 0, _error.at<double>(3, 0));
