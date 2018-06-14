@@ -38,6 +38,7 @@ private:
 	list<vector<double>> lastFiveError;
 	int _mode;
 	int _pic_size;
+	int last_stage;
 	//set move_dir
 	//vx,vy,vz,vr
 	void setMoveDir(double vx, double vy,double vz,double vr);
