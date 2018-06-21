@@ -272,7 +272,7 @@ void myDrone::do_run() {
 
 void myDrone::run_final() {
 	int stage_time = 0;
-	int times = 0;
+	int times = 1;
 	bool flag;
 	int waitTimeFaceMarker3 = 1000 / 33;
 	int waitTimeFaceMarker4 = 1000 / 33;
@@ -285,20 +285,26 @@ void myDrone::run_final() {
 		switch (_stage) {
 		case(0):
 			if (detectMark()) {
-				if (getMarkerID(11) != -1) {   //see mark1
+				if (getMarkerID(1) != -1) {   //see mark1 //todo !!!!!!!!!!!!!!!!!!!!!!!!
 					_stage = -1;
 				} else {
-					setMoveDir(0, 0, 0, -0.1);
+					setMoveDir(0, 0, 0, -0.15);
 				}
 			} else {
-				setMoveDir(0, 0, 0, -0.1);
+				setMoveDir(0, 0, 0, -0.15);
 			}
 			break;
 		case (-1):
 
 			if (detectMark()) {
-				if (getMarkerID(11) != -1) {
-					_markIndex = getMarkerID(11);
+				/*
+				_markIndex = getMarkerID(1);
+				getError(_markIndex);
+				printf("%f, %f\n", _error.at<double>(1, 0), _error.at<double>(3, 0));
+				break;
+				*/
+				if (getMarkerID(1) != -1) {  //todo 
+					_markIndex = getMarkerID(1);
 					getError(_markIndex);
 					if (face_ahead()) {
 						_stage = 1;
@@ -326,7 +332,7 @@ void myDrone::run_final() {
 						//_markIndex = 0;
 						getError(0);
 						setMoveDir(SPEED, 0, 0, 0);
-						//setMoveDir(0.2, 0, 0, 0.2*_error.at<double>(3, 0));
+						//setMoveDir(SPEED, 0, 0, 0.2*_error.at<double>(3, 0));
 					} else {
 						setMoveDir(SPEED, 0, 0, 0);
 					}
@@ -343,7 +349,7 @@ void myDrone::run_final() {
 						}
 
 					}
-					getError(0);
+					//getError(0);
 					//setMoveDir(0.2, 0, 0, 0.2*_error.at<double>(3, 0));
 					setMoveDir(SPEED, 0, 0, 0);
 				} else {
@@ -398,12 +404,22 @@ void myDrone::run_final() {
 			}
 			break;
 			//****************************************************
+		case(-5)://turn around untill see mark two
+			if (detectMark() && getMarkerID(2) != -1) {
+				_markIndex = getMarkerID(2);
+				_stage = 5;
+
+			} else {
+				setMoveDir(0, 0, 0, -0.08);
+
+			}
+			break;
 		case(5)://go ahead,until see mark two
 			if (detectMark() && getMarkerID(2) != -1) {
 				_markIndex = getMarkerID(2);
 				_stage = 6;
 			} else {
-				setMoveDir(0.4, 0, 0, 0);
+				setMoveDir(0.6, 0, 0, 0);
 			}
 			break;
 		case(6):// set mark 2 
@@ -445,16 +461,7 @@ void myDrone::run_final() {
 				}
 			}
 			break;
-		case(9)://go ahead untill distance =1;
-				/*
-				if (waitTimeFaceMarker3 != 0) {
-				waitTimeFaceMarker3 -= 1;
-				setMoveDir(0, 0, 0, 0);
-				cout << "************** " << waitTimeFaceMarker3 << endl;
-				move();
-				break;
-				}
-				*/
+		case(9):
 			setMoveDir(0, 0, 0, 0);
 			flag = go_head(1.0, 3);
 			if (flag) {
@@ -463,7 +470,6 @@ void myDrone::run_final() {
 				break;
 			}
 			if (!detectMark() || getMarkerID(3) == -1) {
-				printf("aaaaaaaaaaaaaaaaaaaaa\n");
 				if (lastFiveError.back()[0] > 1.8) {
 					setMoveDir(0.05*(lastFiveError.back()[0] - 1), 0, 0, 0);
 				} else {
@@ -511,9 +517,10 @@ void myDrone::run_final() {
 					if (tmp_flag) {
 						//_markIndex = 0;
 						getError(0);
-						setMoveDir(0.3, 0, 0, 0.2*_error.at<double>(3, 0));
+						setMoveDir(SPEED, 0, 0, 0);
+						//setMoveDir(0.3, 0, 0, 0.2*_error.at<double>(3, 0));
 					} else {
-						setMoveDir(0.3, 0, 0, 0);
+						setMoveDir(SPEED, 0, 0, 0);
 					}
 				}
 			} else {
@@ -528,16 +535,17 @@ void myDrone::run_final() {
 						}
 					}
 					getError(0);
-					setMoveDir(0.3, 0, 0, 0.2*_error.at<double>(3, 0));
+					//setMoveDir(SPEED, 0, 0, 0.2*_error.at<double>(3, 0));
+					setMoveDir(SPEED, 0, 0, 0);
 				} else {
-					setMoveDir(0.3, 0, 0, 0);
+					setMoveDir(SPEED, 0, 0, 0);
 				}
 			}
 			break;
 		case(13)://shift right 1 sec
 			if (stage_time > 0) {
 				stage_time--;
-				setMoveDir(0, -0.3, 0, 0);
+				setMoveDir(0, -0.8, 0, 0);
 			} else {
 				_stage = 14;
 				stage_time = 3000 / 33;
@@ -550,7 +558,7 @@ void myDrone::run_final() {
 				if (stage_time > 2000 / 33) {
 					setMoveDir(0, 0, 0, 0);
 				} else {
-					setMoveDir(0.5, 0, 0, 0);
+					setMoveDir(SPEED, 0, 0, 0);
 				}
 			} else {
 				_stage = 15;
@@ -565,7 +573,7 @@ void myDrone::run_final() {
 				if (stage_time > 1500 / 33) {
 					setMoveDir(0, 0, 0, 0);
 				} else {
-					setMoveDir(0, 0.5, 0, 0);
+					setMoveDir(0, 0.8, 0, 0);
 				}
 			} else {
 				_stage = 16;
@@ -577,7 +585,7 @@ void myDrone::run_final() {
 				_markIndex = getMarkerID(4);
 				_stage = 17;
 			} else {
-				setMoveDir(0.4, 0, 0, 0);
+				setMoveDir(SPEED, 0, 0, 0);
 			}
 			break;
 		case(17):// set mark four
@@ -698,7 +706,7 @@ bool myDrone::getInput(void) {
 	if (key == 'q') vz = 1.0;
 	if (key == 'a') vz = -1.0;
 	if (key == 'c') _ardrone.setCamera(++_mode % 4);
-	if (key == 't') _stage = 1;
+	if (key == 't') _stage = 0;
 	if (key == 'w') {
 		last_stage = _stage;
 		_stage = -10;
@@ -721,9 +729,9 @@ void myDrone::move(void) {
 		_move_dir.at<double>(2, 0),
 		_move_dir.at<double>(3, 0));
 	if (!_ardrone.onGround()) {
-		printf("%f, %f, %f, %f \n", _move_dir.at<double>(0, 0), _move_dir.at<double>(1, 0),
-			_move_dir.at<double>(2, 0),
-			_move_dir.at<double>(3, 0));
+		//printf("%f, %f, %f, %f \n", _move_dir.at<double>(0, 0), _move_dir.at<double>(1, 0),
+		//	_move_dir.at<double>(2, 0),
+		//	_move_dir.at<double>(3, 0));
 	}
 }
 
@@ -762,7 +770,7 @@ void myDrone::getError(int makerIndex) {
 	} else {
 		_error.at<double>(3, 0) = -fabs(_rvecs[_markIndex][2]);
 	}
-	_error.at<double>(3, 0) += 0.20;//todo 
+	_error.at<double>(3, 0) += 0.10;//todo 
 
 	return;
 
@@ -770,7 +778,7 @@ void myDrone::getError(int makerIndex) {
 
 bool myDrone::face_ahead(void) {
 	getError(_markIndex);
-	if (fabs(_error.at<double>(3, 0)) < 0.03) {
+	if (fabs(_error.at<double>(3, 0)) < 0.08) {
 		return true;
 	} else {
 		setMoveDir(0, 0, 0, _error.at<double>(3, 0));
