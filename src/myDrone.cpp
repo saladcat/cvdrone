@@ -1,5 +1,5 @@
 #include "myDrone.h"
-#define SPEED 0.6666666666
+#define SPEED 0.5666666666
 
 myDrone::myDrone() :_mode(0), _stage(-1), _error(4, 1, CV_64F), _move_dir(4, 1, CV_64F) {
 	PIDManager PID("pid.yaml");
@@ -91,7 +91,7 @@ void myDrone::do_run() {
 				_markIndex = getMarkerID(2);
 				_stage = 3;
 			} else {
-				setMoveDir(0.4, 0, 0, 0);
+				setMoveDir(0.5, 0, 0, 0);
 			}
 			break;
 		case(3)://see mark two,go until distance equal to 1 meter
@@ -144,7 +144,7 @@ void myDrone::do_run() {
 				waitTimeFaceMarker3 -= 1;
 				setMoveDir(0, 0, 0, 0);
 				cout << "************** " << waitTimeFaceMarker3 << endl;
-				move();
+				//move();
 				break;
 			}
 			setMoveDir(0, 0, 0, 0);
@@ -270,7 +270,7 @@ void myDrone::do_run() {
 	}
 }
 
-void myDrone::run_final() {
+void myDrone::run_final() {		
 	int stage_time = 0;
 	int times = 1;
 	bool flag;
@@ -285,7 +285,7 @@ void myDrone::run_final() {
 		switch (_stage) {
 		case(0):
 			if (detectMark()) {
-				if (getMarkerID(1) != -1) {   //see mark1 //todo !!!!!!!!!!!!!!!!!!!!!!!!
+				if (getMarkerID(11) != -1) {   //see mark1 //todo !!!!!!!!!!!!!!!!!!!!!!!!
 					_stage = -1;
 				} else {
 					setMoveDir(0, 0, 0, -0.15);
@@ -303,8 +303,8 @@ void myDrone::run_final() {
 				printf("%f, %f\n", _error.at<double>(1, 0), _error.at<double>(3, 0));
 				break;
 				*/
-				if (getMarkerID(1) != -1) {  //todo 
-					_markIndex = getMarkerID(1);
+				if (getMarkerID(11) != -1) {  //todo 
+					_markIndex = getMarkerID(11);
 					getError(_markIndex);
 					if (face_ahead()) {
 						_stage = 1;
@@ -323,7 +323,7 @@ void myDrone::run_final() {
 		case(1):// see LBJ
 			tmp_flag = detectMark();
 			if (times % 3 == 0 && dectFace()) {
-				if (_pic_size > 70) {
+				if (_pic_size > 60) {
 					cout << "start turn right" << endl;
 					stage_time = 2000 / 33;
 					_stage = 2;
@@ -360,7 +360,7 @@ void myDrone::run_final() {
 		case(2)://shift right 1 sec
 			if (stage_time > 0) {
 				stage_time--;
-				if (stage_time > 1000 / 33) {
+				if (stage_time > 700 / 33) {
 					if (stage_time > 1600 / 33) {
 						setMoveDir(-0.8, 0, 0, 0);
 					} else {
@@ -379,7 +379,7 @@ void myDrone::run_final() {
 		case(3)://go ahead 2 sec
 			if (stage_time > 0) {
 				stage_time--;
-				if (stage_time > 1300 / 33) {
+				if (stage_time > 1000 / 33) {
 					setMoveDir(0, 0, 0, 0);
 				} else {
 					setMoveDir(0.8, 0, 0, 0);
@@ -394,7 +394,7 @@ void myDrone::run_final() {
 		case(4)://shift left 1 sec 
 			if (stage_time > 0) {
 				stage_time--;
-				if (stage_time > 1500 / 33) {
+				if (stage_time > 1200 / 33) {
 					setMoveDir(0, 0, 0, 0);
 				} else {
 					setMoveDir(0, 0.5, 0, 0);
@@ -403,7 +403,7 @@ void myDrone::run_final() {
 				_stage = 5;
 			}
 			break;
-			//****************************************************
+			//**:**************************************************
 		case(-5)://turn around untill see mark two
 			if (detectMark() && getMarkerID(2) != -1) {
 				_markIndex = getMarkerID(2);
@@ -416,8 +416,15 @@ void myDrone::run_final() {
 			break;
 		case(5)://go ahead,until see mark two
 			if (detectMark() && getMarkerID(2) != -1) {
+				
 				_markIndex = getMarkerID(2);
-				_stage = 6;
+				if (_error.at<double>(0, 0) < 2.0) {
+					_stage = 6;
+					setMoveDir(0, 0, 0, 0);
+					break;
+				}
+				go_head(1.0, 2);
+				//_stage = 6;
 			} else {
 				setMoveDir(0.6, 0, 0, 0);
 			}
@@ -508,15 +515,15 @@ void myDrone::run_final() {
 			break;
 		case(12):// see LBJ
 			tmp_flag = detectMark();
-			if (times % 5 == 0 && dectFace()) {
-				if (_pic_size > 70) {
+			if (times % 3 == 0 && dectFace()) {
+				if (_pic_size > 60) {
 					cout << "start turn right" << endl;
 					stage_time = 1000 / 33;
 					_stage = 13;
 				} else {
 					if (tmp_flag) {
 						//_markIndex = 0;
-						getError(0);
+						//getError(0);
 						setMoveDir(SPEED, 0, 0, 0);
 						//setMoveDir(0.3, 0, 0, 0.2*_error.at<double>(3, 0));
 					} else {
@@ -545,7 +552,16 @@ void myDrone::run_final() {
 		case(13)://shift right 1 sec
 			if (stage_time > 0) {
 				stage_time--;
-				setMoveDir(0, -0.8, 0, 0);
+				if (stage_time > 700 / 33) {
+					if (stage_time > 1600 / 33) {
+						setMoveDir(-0.8, 0, 0, 0);
+					} else {
+						setMoveDir(0, 0, 0, 0);
+					}
+				} else {
+					setMoveDir(0, -1.0, 0, 0);
+				}
+
 			} else {
 				_stage = 14;
 				stage_time = 3000 / 33;
@@ -555,10 +571,10 @@ void myDrone::run_final() {
 		case(14)://go ahead 2 sec
 			if (stage_time > 0) {
 				stage_time--;
-				if (stage_time > 2000 / 33) {
+				if (stage_time > 1000 / 33) {
 					setMoveDir(0, 0, 0, 0);
 				} else {
-					setMoveDir(SPEED, 0, 0, 0);
+					setMoveDir(0.8, 0, 0, 0);
 				}
 			} else {
 				_stage = 15;
@@ -570,10 +586,10 @@ void myDrone::run_final() {
 		case(15)://shift left 1 sec 
 			if (stage_time > 0) {
 				stage_time--;
-				if (stage_time > 1500 / 33) {
+				if (stage_time > 1200 / 33) {
 					setMoveDir(0, 0, 0, 0);
 				} else {
-					setMoveDir(0, 0.8, 0, 0);
+					setMoveDir(0, 0.5, 0, 0);
 				}
 			} else {
 				_stage = 16;
